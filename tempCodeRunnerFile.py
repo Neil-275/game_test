@@ -1,1 +1,1 @@
-print (eX,eY)
+r
