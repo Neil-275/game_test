@@ -1,5 +1,5 @@
-a=0
-def add(a):
-    a+=1
-add(a)
-print(a)
+f=[]
+f.append(12.123)
+f.append(123.1231415)
+print (f[0])
+print (f[1])

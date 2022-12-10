@@ -21,66 +21,84 @@ gameover= pygame.image.load('img/gameover.png')
 #Animation
 explode = pygame.image.load('img/explode.png')
 
+#Coin
+coinImg= pygame.image.load('img/coin.png') # Trying to add a gif instead of png file
+coinX,coinY=0,0
+coinEdge=24
+score=0
+coinState=0
+difficulty=0
+
 #Laser
 laserImg=pygame.image.load("img/medical.png")
-laserState=0
-laserX,laserY=0,0
-disX,disY,dis=0,0,0
-laserA,laserB =0,0
-diLaserX,diLaserY=0,0
+laserState=[]
+laserX,laserY=[],[]
+disX,disY,dis=[],[],[]
+diLaserX,diLaserY=[],[]
 laserEdge=24
+
 #Player
 playerImg=pygame.image.load("img/worldwide.png")
 playerX,playerY= 268,250
 changeX,changeY=0,0
 playerEdge=24
 alive=1
+
 #enemies
 enemiesImg=pygame.image.load("img/ufo.png")
-eX,eY,diX,diY,speedY=300,0,1,1,0
+eX,eY,diX,diY=[],[],[],[]
 enemyEdge=64
 
-def player(State,x,y):
+def updateDisplay(State,x,y):
     screen.blit(State,(x,y))
 
-def enemy(x,y):
-    screen.blit(enemiesImg,(x,y))
+def fire(i):
+    global playerX,playerY,eX,eY,laserX,laserY,laserState,diLaserX,diLaserY,dis,disX,disY
+    laserState[i]=1
+    diLaserX[i]= abs(playerX-eX[i])/(playerX-eX[i])
+    diLaserY[i]= abs(playerY-eY[i])/(playerY-eY[i])
+    dis[i]=sqrt((playerY-eY[i])*(playerY-eY[i])+(playerX-eX[i])*(playerX-eX[i]))
+    disX[i],disY[i]=abs(playerX-eX[i]),abs(playerY-eY[i])
+    laserX[i],laserY[i]= eX[i],eY[i]
 
-def laser(x,y):
-
-    screen.blit(laserImg,(x,y))
-
-def fire():
-    global playerX,playerY,eX,eY,laserA,laserB,laserX,laserY,laserState,diLaserX,diLaserY,dis,disX,disY
-    laserState=1
-    diLaserX= abs(playerX-eX)/(playerX-eX)
-    diLaserY= abs(playerY-eY)/(playerY-eY)
-    dis=sqrt((playerY-eY)*(playerY-eY)+(playerX-eX)*(playerX-eX))
-
-    a=(playerY-eY)/(playerX-eX) 
-    b=playerY- a*playerX
-    
-    laserA,laserB=a,b
-    disX,disY=abs(playerX-eX),abs(playerY-eY)
-    laserX,laserY= eX,eY
-
-def crt():
-    global eX,eY,diX,diY
-    # eX=random.choice([0,568])
-    # eY=random.randint(0,468)
-    if eX<=0:
-        diX=random.uniform(1,1.3)
-    if eX>=maxW-enemyEdge:
-        diX=-random.uniform(1,1.3)
-    if eY<=0:
-        diY=random.uniform(1,1.3)
-    if eY>=maxH-enemyEdge:
-        diY=-random.uniform(1,1.3)
+def newCoin():
+    global coinX,coinY,score,coinState
+    coinState=1
+    score+=1
+    coinX=random.randint(0,maxW-coinEdge)
+    coinY=random.randint(0,maxH-coinEdge)
 
 def isCollide(a,b,x,y):
-    if sqrt((a-x)*(a-x)+(b-y)*(b-y))< 20:
+    if sqrt((a-x)*(a-x)+(b-y)*(b-y))< 30:
         return 1
     return 0
+    
+def bounce(i):
+    global eX,eY,diX,diY
+    if eX[i]<=0:
+        diX[i]=random.uniform(1,1.3)
+    if eX[i]>=maxW-enemyEdge:
+        diX[i]=-random.uniform(1,1.3)
+    if eY[i]<=0:
+        diY[i]=random.uniform(1,1.3)
+    if eY[i]>=maxH-enemyEdge:
+        diY[i]=-random.uniform(1,1.3)
+
+def increaseDifficulty():
+    global eX,eY,diX,diY,enemyEdge
+    eX.append(random.choice([-enemyEdge,maxW+10]))
+    eY.append(random.choice([-enemyEdge,maxH+10]))
+    diX.append(0)
+    diY.append(0)
+    laserX.append(0.1)
+    laserY.append(0.1)
+    laserState.append(0)
+    dis.append(0)
+    disX.append(0)
+    disY.append(0)
+    diLaserX.append(0)
+    diLaserY.append(0)
+    bounce(len(eX)-1)
 
 #Game Loop
 running= True
@@ -88,11 +106,7 @@ while running:
     screen.fill((4,4,4))
     screen.blit(background,(0,0))
         
-    if isCollide(playerX,playerY,eX,eY) or isCollide(playerX,playerY,laserX,laserY) and alive==1:
-        alive=0
-        laserState=0
-        # screen.blit(gameover,(maxW/2-180,maxH/2-180))
-         
+    #Event
     for event in pygame.event.get():
         if  event.type == pygame.QUIT:
             running=False
@@ -114,34 +128,50 @@ while running:
             if event.key==pygame.K_DOWN or event.key== pygame.K_UP:
                 changeY=0
     
-     #Enenmy
-    crt()
-    eX += 0.1*(maxW/600)*diX
-    eY += 0.1*(maxW/600)*diY
+    #increaseDifficulty
+    if score>=difficulty*5 and len(eX)<5:
+        difficulty+=1
+        increaseDifficulty()
+    #enenmyMovement
+    for i in range(len(eX)):
+        bounce(i)
+        eX[i] += 0.1*(maxW/600)*diX[i]
+        eY[i] += 0.1*(maxW/600)*diY[i]
+        updateDisplay(enemiesImg,eX[i],eY[i])
 
-    # Laser
-    if laserState == 0 and alive==1 :
-        fire()
-    if laserX<-laserEdge or laserX>maxW or laserY<-laserEdge or laserY>maxH:
-        laserState=0
-    # laserX+= 0.25*diLaserX
-    # laserY= laserA*laserX+ laserB
-    if laserState==1:
-        laserX+= 0.45*(maxW/600)*disX/dis * diLaserX
-        laserY+= 0.45*(maxW/600)*disY/dis * diLaserY
-    #Player
+    #laserMovement
+    for i in range (len(laserX)):
+        if laserState[i] == 0 and alive==1 :
+            fire(i)
+        if laserX[i]< -laserEdge or laserX[i]>maxW or laserY[i]< -laserEdge or laserY[i]>maxH:
+            laserState[i]=0
+        if laserState[i]==1:
+            laserX[i]+= 0.3*(maxW/600)*disX[i]/dis[i] * diLaserX[i]
+            laserY[i]+= 0.3*(maxW/600)*disY[i]/dis[i] * diLaserY[i]
+        updateDisplay(laserImg,laserX[i],laserY[i])
+
+    #Collision
+    if isCollide(playerX,playerY,eX[i],eY[i]) or isCollide(playerX,playerY,laserX[i],laserY[i]) and alive==1:
+        alive=0
+        for i in range(len(eX)):
+            laserState[i]=0
+    if isCollide(playerX,playerY,coinX,coinY) or coinState==0:
+        newCoin()
+        
+    updateDisplay(coinImg,coinX,coinY)
+
+    #playerMovement
+    
+    if alive==1:
+        updateDisplay(playerImg,playerX,playerY)
+    else :
+        # Lose
+        updateDisplay(explode,playerX-48,playerY-48)
+        screen.blit(gameover,(270,70))
     if 0<playerX+changeX<maxW-laserEdge:
         playerX+=changeX
     if 0<playerY+changeY<maxH-laserEdge:
         playerY+=changeY
-
-    enemy(eX,eY)
-    laser(laserX,laserY)
-    if alive==1:
-        player(playerImg,playerX,playerY)
-    else :
-        player(explode,playerX-48,playerY-48)
-        screen.blit(gameover,(270,70))
     pygame.display.update()
     # break
 
