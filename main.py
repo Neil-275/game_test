@@ -15,12 +15,13 @@ pygame.mixer.music.load('soundEffect/background.wav')
 pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(0.05)
 
-#Title and background
+#Title and background and Font
 pygame.display.set_caption("Hello World")
 icon= pygame.image.load('img/logo.png')
 pygame.display.set_icon(icon)
 gameover= pygame.image.load('img/gameover.png')
 font = pygame.font.Font('freesansbold.ttf',32)
+fontI= pygame.font.Font('font/static/Nunito-Italic.ttf',24)
 
 #Animation
 explode = pygame.image.load('img/explode.png')
@@ -61,6 +62,17 @@ enemiesImg=pygame.image.load("img/ufo.png")
 eX,eY,diX,diY=[],[],[],[]
 enemyEdge=64
 
+#Time
+curTime=0
+
+#Restart
+restart=0
+restartText= fontI.render('Click anywhere to restart',True, (120,255,255))
+
+print(fontI.size("Click anywhere to continue"))
+#Continue
+
+
 def updateDisplay(State,x,y):
     screen.blit(State,(x,y))
 
@@ -87,7 +99,6 @@ def isCollide(a,b,x,y):
     return 0
     
 def bounce(i):
-    global eX,eY,diX,diY
     if eX[i]<=0:
         diX[i]=random.uniform(1,1.3)
     if eX[i]>=maxW-enemyEdge:
@@ -98,7 +109,7 @@ def bounce(i):
         diY[i]=-random.uniform(1,1.3)
 
 def increaseDifficulty():
-    global eX,eY,diX,diY,enemyEdge
+    global enemyEdge
     eX.append(random.choice([-enemyEdge,maxW+10]))
     eY.append(random.choice([-enemyEdge,maxH+10]))
     diX.append(0)
@@ -113,6 +124,26 @@ def increaseDifficulty():
     diLaserY.append(0)
     bounce(len(eX)-1)
 
+def setRestart():
+    global score,alive,playerX,playerY,difficulty
+    eX.clear()
+    eY.clear()
+    diX.clear()
+    diY.clear()
+    laserX.clear()
+    laserY.clear()
+    laserState.clear()
+    dis.clear()
+    disX.clear()
+    disY.clear()
+    diLaserX.clear()
+    diLaserY.clear()
+    print (len(eX))
+    score=-1
+    alive=1
+    playerX,playerY= 268,250
+    difficulty=0
+    
 #Game Loop
 running= True
 
@@ -125,8 +156,11 @@ while running:
     for event in pygame.event.get():
         if  event.type == pygame.QUIT:
             running=False
-        if event.type== pygame.VIDEORESIZE:
-            screen=pygame.display.set_mode((event.h,event.w),pygame.VIDEORESIZE)
+        # if event.type== pygame.VIDEORESIZE:
+        #     screen=pygame.display.set_mode((event.h,event.w),pygame.VIDEORESIZE)
+        if event.type== pygame.MOUSEBUTTONDOWN and restart==1:
+            setRestart()
+            restart=0
         if alive==1 and event.type== pygame.KEYDOWN:
             if event.key== pygame.K_LEFT:
                 changeX-=0.5*(maxW/600)
@@ -169,25 +203,31 @@ while running:
 
     #Collision
     for i in range (len(eX)):
-        if isCollide(playerX,playerY,eX[i],eY[i]) or isCollide(playerX,playerY,laserX[i],laserY[i]) and alive==1:
+        if (isCollide(playerX,playerY,eX[i],eY[i]) or isCollide(playerX,playerY,laserX[i],laserY[i])) and alive==1:
             alive=0
             laserState[i]=2
+            timeCnt=pygame.time.get_ticks()
+            explodeSound.play()
+            
     if isCollide(playerX,playerY,coinX,coinY) or score==-1:
         newCoin()
-        scoreText=font.render(("Coin:"+ str(score)),True,(255,255,255))
+        scoreText=font.render(("Coin: "+ str(score)),True,(255,255,255))
         
     updateDisplay(coinImg,coinX,coinY)
 
-    tmp=pygame.time.Clock().tick(0)
-    print(tmp)
     #playerMovement
     if alive==1:
         updateDisplay(playerImg,playerX,playerY)
     else :
         # Lose
-        explodeSound.play()
-        updateDisplay(explode,playerX-48,playerY-48)
-        screen.blit(gameover,(270,70))  
+        
+        if curTime - timeCnt <=1000:
+            updateDisplay(explode,playerX-48,playerY-48)
+        elif curTime- timeCnt >=1500:
+            updateDisplay(gameover,270,70)
+        if curTime-timeCnt >=2000:
+            restart=1
+            updateDisplay(restartText,305,360)
         changeX,changeY=0,0
         
     if 0<playerX+changeX<maxW-laserEdge:
@@ -196,6 +236,9 @@ while running:
         playerY+=changeY
     #Score
     updateDisplay(scoreText,textX,textY)
+    #Time
+    curTime=pygame.time.get_ticks()
+
     pygame.display.update()
     # break
 
